@@ -11,6 +11,10 @@ data "aws_availability_zones" "available" {
 
 data "aws_caller_identity" "current" {}
 
+data "http" "my_ip" {
+  url = "https://checkip.amazonaws.com"
+}
+
 data "aws_route53_zone" "main" {
   name         = var.route53_zone_name
   private_zone = false
@@ -61,7 +65,8 @@ module "eks" {
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
 
-  cluster_endpoint_public_access = true
+  cluster_endpoint_public_access       = true
+  cluster_endpoint_public_access_cidrs = ["${chomp(data.http.my_ip.response_body)}/32"]
 
   # Install Gateway API CRDs via EKS add-on
   cluster_addons = {
