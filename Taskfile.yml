@@ -1,0 +1,112 @@
+version: '3'
+
+vars:
+  PROJECT: vedmich-gatewaydemo
+  AWS_REGION: eu-central-1
+  ECR_REGISTRY: '{{.AWS_ACCOUNT_ID}}.dkr.ecr.{{.AWS_REGION}}.amazonaws.com'
+  DOMAIN: gateway-demo.vedmich.dev
+  NS_MAIN: gatewaydemo
+  NS_CART: gatewaydemo-cart
+  SERVICES: products-v1 products-v2 cart
+
+tasks:
+  # --- Infrastructure ---
+  infra:init:
+    desc: Initialize Terraform
+    dir: terraform
+    cmds:
+      - terraform init
+
+  infra:plan:
+    desc: Plan infrastructure changes
+    dir: terraform
+    cmds:
+      - terraform plan -out=tfplan
+
+  infra:apply:
+    desc: Apply infrastructure (EKS + VPC + ACM)
+    dir: terraform
+    cmds:
+      - terraform apply tfplan
+
+  infra:output:
+    desc: Show Terraform outputs
+    dir: terraform
+    cmds:
+      - terraform output
+
+  # --- Docker Images ---
+  images:build:
+    desc: Build all service images
+    cmds:
+      - for: { var: SERVICES, split: ' ' }
+        cmd: docker build -t {{.PROJECT}}/{{.ITEM}}:latest services/{{.ITEM}}/
+
+  images:push:
+    desc: Push all images to ECR
+    cmds:
+      - aws ecr get-login-password --region {{.AWS_REGION}} | docker login --username AWS --password-stdin {{.ECR_REGISTRY}}
+      - for: { var: SERVICES, split: ' ' }
+        cmd: |
+          docker tag {{.PROJECT}}/{{.ITEM}}:latest {{.ECR_REGISTRY}}/{{.PROJECT}}/{{.ITEM}}:latest
+          docker push {{.ECR_REGISTRY}}/{{.PROJECT}}/{{.ITEM}}:latest
+
+  # --- Deploy ---
+  deploy:apps:
+    desc: Deploy base apps (Deployments + Services)
+    cmds:
+      - kubectl create namespace {{.NS_MAIN}} --dry-run=client -o yaml | kubectl apply -f -
+      - kubectl create namespace {{.NS_CART}} --dry-run=client -o yaml | kubectl apply -f -
+      - kubectl apply -f manifests/01-app/
+
+  deploy:ingress-nginx:
+    desc: Deploy NGINX Ingress resources
+    cmds:
+      - kubectl apply -f manifests/02-ingress-nginx/
+
+  deploy:ingress-alb:
+    desc: Deploy ALB Ingress resources
+    cmds:
+      - kubectl apply -f manifests/03-ingress-alb/
+
+  deploy:gateway-api:
+    desc: Deploy Gateway API resources
+    cmds:
+      - kubectl apply -f manifests/04-gateway-api/
+
+  # --- Migration ---
+  migrate:nginx:
+    desc: "Path 1: NGINX Ingress -> Gateway API"
+    cmds:
+      - bash scripts/migrate-nginx.sh
+
+  migrate:alb:
+    desc: "Path 2: ALB Ingress -> ALB Controller + Gateway API"
+    cmds:
+      - bash scripts/migrate-alb.sh
+
+  # --- Tests ---
+  test:unit:
+    desc: Run unit tests
+    cmds:
+      - python -m pytest tests/unit/ -v
+
+  test:e2e:
+    desc: Run E2E tests against live cluster
+    cmds:
+      - python -m pytest tests/e2e/ -v --base-url=https://{{.DOMAIN}}
+
+  # --- Cleanup ---
+  teardown:
+    desc: Destroy all resources (by tag vedmich-gatewaydemo)
+    cmds:
+      - kubectl delete -f manifests/ --recursive --ignore-not-found
+      - kubectl delete namespace {{.NS_MAIN}} --ignore-not-found
+      - kubectl delete namespace {{.NS_CART}} --ignore-not-found
+      - task: infra:destroy
+
+  infra:destroy:
+    desc: Destroy Terraform infrastructure
+    dir: terraform
+    cmds:
+      - terraform destroy -auto-approve
