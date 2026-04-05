@@ -1,0 +1,49 @@
+# Path 2: Manual mapping from ALB Ingress annotations → Gateway API CRDs
+#
+# This shows how each ALB annotation maps to the new type-safe CRDs.
+# Compare 03-ingress-alb/ingress.yaml → 04-gateway-api/ to see the full migration.
+#
+# Annotation Mapping Table:
+#
+# | ALB Annotation                              | Gateway API Equivalent                    |
+# |---------------------------------------------|-------------------------------------------|
+# | alb.ingress.kubernetes.io/scheme             | Gateway annotation or LBConfig CRD        |
+# | alb.ingress.kubernetes.io/target-type        | TargetGroupConfiguration CRD              |
+# | alb.ingress.kubernetes.io/listen-ports       | Gateway spec.listeners                    |
+# | alb.ingress.kubernetes.io/certificate-arn    | Gateway listener tls.certificateRefs      |
+# | alb.ingress.kubernetes.io/ssl-policy         | LoadBalancerConfiguration CRD             |
+# | alb.ingress.kubernetes.io/healthcheck-*      | TargetGroupConfiguration healthCheck      |
+# | alb.ingress.kubernetes.io/actions.*          | HTTPRoute backendRefs with weights        |
+# | alb.ingress.kubernetes.io/conditions.*       | HTTPRoute matches (path, headers, etc.)   |
+#
+# Key differences:
+# - Annotations are strings → CRDs have typed fields with validation
+# - Single Ingress resource → GatewayClass + Gateway + HTTPRoute (role-separated)
+# - Errors caught at apply time, not silently at runtime
+
+# Example: LoadBalancerConfiguration CRD (replaces scheme + ssl-policy annotations)
+apiVersion: elbv2.k8s.aws/v1alpha1
+kind: LoadBalancerConfiguration
+metadata:
+  name: gatewaydemo-lb-config
+  namespace: gatewaydemo
+spec:
+  scheme: internet-facing
+  ipAddressType: ipv4
+  securityPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+
+---
+# Example: TargetGroupConfiguration CRD (replaces target-type + healthcheck annotations)
+apiVersion: elbv2.k8s.aws/v1alpha1
+kind: TargetGroupConfiguration
+metadata:
+  name: gatewaydemo-tg-config
+  namespace: gatewaydemo
+spec:
+  targetType: ip
+  healthCheck:
+    path: /health
+    intervalSeconds: 15
+    timeoutSeconds: 5
+    healthyThresholdCount: 2
+    unhealthyThresholdCount: 3

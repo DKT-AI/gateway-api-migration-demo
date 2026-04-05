@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: products-v1
+  namespace: gatewaydemo
+  labels:
+    app: products
+    version: v1
+    app.kubernetes.io/name: products-v1
+    app.kubernetes.io/part-of: vedmich-gatewaydemo
+    app.kubernetes.io/managed-by: kubectl
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: products
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: products
+        version: v1
+        app.kubernetes.io/name: products-v1
+        app.kubernetes.io/part-of: vedmich-gatewaydemo
+    spec:
+      containers:
+        - name: products-v1
+          # Replace with ECR URL after terraform apply
+          image: ACCOUNT_ID.dkr.ecr.eu-central-1.amazonaws.com/vedmich-gatewaydemo/products-v1:latest
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          env:
+            - name: SERVICE_NAME
+              value: "products-v1"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: products-v1
+  namespace: gatewaydemo
+  labels:
+    app: products
+    version: v1
+    app.kubernetes.io/name: products-v1
+    app.kubernetes.io/part-of: vedmich-gatewaydemo
+spec:
+  selector:
+    app: products
+    version: v1
+  ports:
+    - port: 80
+      targetPort: 8000
+      protocol: TCP

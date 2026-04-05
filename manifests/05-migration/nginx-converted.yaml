@@ -1,0 +1,51 @@
+# Output of: ingress2gateway print --input-file ../02-ingress-nginx/ingress.yaml
+#
+# This is the RAW output from ingress2gateway 1.0
+# It needs manual patches for:
+# - Traffic splitting (not in original Ingress)
+# - Cross-namespace routing (cart service)
+# - Header-based routing
+# - TLS configuration (ACM integration)
+#
+# Compare with 04-gateway-api/ to see what was added manually.
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: gatewaydemo
+  namespace: gatewaydemo
+spec:
+  gatewayClassName: ""  # PATCH NEEDED: set to "alb"
+  listeners:
+    - name: https
+      protocol: HTTPS
+      port: 443
+      hostname: gateway-demo.vedmich.dev
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: gatewaydemo-tls
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: gatewaydemo
+  namespace: gatewaydemo
+spec:
+  parentRefs:
+    - name: gatewaydemo
+      namespace: gatewaydemo
+  hostnames:
+    - gateway-demo.vedmich.dev
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/products
+      backendRefs:
+        - name: products-v1
+          port: 80
+    # NOTE: cart route missing — cross-namespace not in original Ingress
+    # NOTE: traffic splitting not converted — was in annotations
+    # NOTE: header routing not converted — was canary annotation

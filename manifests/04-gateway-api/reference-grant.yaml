@@ -1,0 +1,17 @@
+# ReferenceGrant — allows HTTPRoute in gatewaydemo to reference
+# Services in gatewaydemo-cart (cross-namespace handshake)
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-gatewaydemo-routes
+  namespace: gatewaydemo-cart
+  labels:
+    app.kubernetes.io/part-of: vedmich-gatewaydemo
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: gatewaydemo
+  to:
+    - group: ""
+      kind: Service

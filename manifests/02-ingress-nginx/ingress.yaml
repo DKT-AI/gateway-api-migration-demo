@@ -1,0 +1,43 @@
+# NGINX Ingress — Path 1 starting point
+# This is what you have BEFORE migrating to Gateway API
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gatewaydemo
+  namespace: gatewaydemo
+  labels:
+    app.kubernetes.io/part-of: vedmich-gatewaydemo
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    # Canary annotation for traffic splitting
+    # Uncomment to enable 10% traffic to v2:
+    # nginx.ingress.kubernetes.io/canary: "true"
+    # nginx.ingress.kubernetes.io/canary-weight: "10"
+    # Header-based routing to v2:
+    # nginx.ingress.kubernetes.io/canary-by-header: "x-version"
+    # nginx.ingress.kubernetes.io/canary-by-header-value: "v2"
+spec:
+  tls:
+    - hosts:
+        - gateway-demo.vedmich.dev
+      secretName: gatewaydemo-tls
+  rules:
+    - host: gateway-demo.vedmich.dev
+      http:
+        paths:
+          - path: /api/products
+            pathType: Prefix
+            backend:
+              service:
+                name: products-v1
+                port:
+                  number: 80
+          - path: /api/cart
+            pathType: Prefix
+            backend:
+              service:
+                name: cart
+                port:
+                  number: 80

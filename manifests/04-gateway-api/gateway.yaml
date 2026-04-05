@@ -1,0 +1,27 @@
+# Gateway — creates an internet-facing ALB with HTTPS listener
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: gatewaydemo
+  namespace: gatewaydemo
+  labels:
+    app.kubernetes.io/part-of: vedmich-gatewaydemo
+  annotations:
+    # ALB configuration via annotations (until CRDs are fully adopted)
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+spec:
+  gatewayClassName: alb
+  listeners:
+    - name: https
+      protocol: HTTPS
+      port: 443
+      hostname: gateway-demo.vedmich.dev
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: gatewaydemo-tls
+      allowedRoutes:
+        namespaces:
+          from: All
