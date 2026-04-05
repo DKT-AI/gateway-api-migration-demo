@@ -85,6 +85,18 @@ tasks:
     cmds:
       - bash scripts/migrate-alb.sh
 
+  # --- Code Quality ---
+  lint:
+    desc: Run ruff lint + format check
+    cmds:
+      - ruff check services/ tests/
+      - ruff format --check services/ tests/
+
+  typecheck:
+    desc: Run mypy strict type checking
+    cmds:
+      - mypy services/ tests/
+
   # --- Tests ---
   test:unit:
     desc: Run unit tests
@@ -95,6 +107,13 @@ tasks:
     desc: Run E2E tests against live cluster
     cmds:
       - python -m pytest tests/e2e/ -v --base-url=https://{{.DOMAIN}}
+
+  check:
+    desc: Run all checks (lint + typecheck + unit tests)
+    cmds:
+      - task: lint
+      - task: typecheck
+      - task: test:unit
 
   # --- Cleanup ---
   teardown:

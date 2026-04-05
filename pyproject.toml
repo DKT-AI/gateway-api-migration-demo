@@ -1,0 +1,49 @@
+[project]
+name = "gateway-api-migration-demo"
+version = "0.1.0"
+description = "DKT demo: migrating from Kubernetes Ingress to Gateway API on AWS"
+requires-python = ">=3.12"
+license = "MIT"
+
+# Dev dependencies only — runtime deps are per-service
+dependencies = []
+
+[tool.setuptools]
+packages = []
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.11",
+    "mypy>=1.15",
+    "pytest>=8.3",
+    "httpx>=0.28",
+    "pytest-asyncio>=0.25",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+src = ["services/products-v1", "services/products-v2", "services/cart", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "RUF"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["products_v1", "products_v2", "cart"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+mypy_path = "services/products-v1:services/products-v2:services/cart"
+
+[[tool.mypy.overrides]]
+module = ["tests", "tests.*"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+pythonpath = ["services/products-v1", "services/products-v2", "services/cart"]

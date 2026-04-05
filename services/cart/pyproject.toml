@@ -1,0 +1,11 @@
+[project]
+name = "cart"
+version = "0.1.0"
+description = "Shopping cart service (cross-namespace demo)"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "pydantic-settings>=2.7",
+    "structlog>=25.1",
+]
