@@ -20,8 +20,18 @@ spec:
         app.kubernetes.io/name: cart
         app.kubernetes.io/part-of: vedmich-gatewaydemo
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
       containers:
         - name: cart
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           image: ACCOUNT_ID.dkr.ecr.eu-central-1.amazonaws.com/vedmich-gatewaydemo/cart:latest
           ports:
             - containerPort: 8000

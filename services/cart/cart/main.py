@@ -2,7 +2,7 @@ from typing import Any
 
 import structlog
 from fastapi import FastAPI
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from cart.config import settings
 from cart.data import add_to_cart, get_cart
@@ -26,11 +26,11 @@ app = FastAPI(
 
 
 class AddItemRequest(BaseModel):
-    user_id: str
-    product_id: int
-    name: str
-    price: float
-    quantity: int = 1
+    user_id: str = Field(..., min_length=1)
+    product_id: int = Field(..., gt=0)
+    name: str = Field(..., min_length=1)
+    price: float = Field(..., gt=0)
+    quantity: int = Field(1, gt=0)
 
 
 @app.get("/health")

@@ -136,9 +136,9 @@ After applying `manifests/04-gateway-api/`:
 ### Traffic Splitting (90/10)
 
 ```bash
-# Send 10 requests — ~1 should hit v2
+# Send 10 requests — responses come from v1 or v2 based on 90/10 weight
 for i in $(seq 1 10); do
-  curl -s https://gateway-demo.vedmich.dev/health | jq -r .service
+  curl -s https://gateway-demo.vedmich.dev/api/products | jq '.[0].name'
 done
 ```
 

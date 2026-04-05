@@ -19,9 +19,9 @@ spec:
       hostname: gateway-demo.vedmich.dev
       tls:
         mode: Terminate
-        certificateRefs:
-          - kind: Secret
-            name: gatewaydemo-tls
+        # AWS ALB Controller discovers ACM certificates automatically
+        # by matching the hostname above. K8s Secrets are NOT supported.
+        # See: manifests/05-migration/alb-mapping.yaml for CRD alternative.
       allowedRoutes:
         namespaces:
           from: All

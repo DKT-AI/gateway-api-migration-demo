@@ -37,10 +37,8 @@ async def test_without_header_default_routing(client: httpx.AsyncClient):
     assert resp.status_code == 200
 
 
-async def test_v1_no_recommendations(client: httpx.AsyncClient):
-    """Products-v1 does NOT have /recommendations endpoint."""
-    # Without header, most traffic goes to v1 which doesn't have this endpoint
-    # This may hit v2 due to traffic split, so we verify the endpoint exists somewhere
+async def test_recommendations_accessible_via_v2_header(client: httpx.AsyncClient):
+    """Recommendations endpoint is only on v2, reachable via header routing."""
     resp = await client.get(
         "/api/products/1/recommendations",
         headers={"x-version": "v2"},

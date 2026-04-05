@@ -23,8 +23,18 @@ spec:
         app.kubernetes.io/name: products-v2
         app.kubernetes.io/part-of: vedmich-gatewaydemo
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
       containers:
         - name: products-v2
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           image: ACCOUNT_ID.dkr.ecr.eu-central-1.amazonaws.com/vedmich-gatewaydemo/products-v2:latest
           ports:
             - containerPort: 8000

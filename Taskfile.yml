@@ -27,7 +27,7 @@ tasks:
     desc: Apply infrastructure (EKS + VPC + ACM)
     dir: terraform
     cmds:
-      - terraform apply tfplan
+      - terraform apply -auto-approve
 
   infra:output:
     desc: Show Terraform outputs

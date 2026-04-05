@@ -37,6 +37,8 @@ spec:
                 name: products-v1
                 port:
                   number: 80
+          # NOTE: cart is in gatewaydemo-cart namespace — Ingress cannot
+          # cross namespaces. This 503s. Gateway API + ReferenceGrant fixes this.
           - path: /api/cart
             pathType: Prefix
             backend:

@@ -16,8 +16,9 @@ def reset_carts():
 
 
 @pytest.fixture
-def client():
-    return httpx.AsyncClient(transport=transport, base_url="http://test")
+async def client():
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
+        yield c
 
 
 async def test_health(client: httpx.AsyncClient):
