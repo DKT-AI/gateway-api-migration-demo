@@ -9,18 +9,18 @@
 ## Migration Flow
 
 ```mermaid
-graph TB
-    subgraph "Before: NGINX Ingress"
+flowchart TB
+    subgraph Before["❌ Before: NGINX Ingress"]
         I["kind: Ingress<br/>class: nginx<br/>+ annotations"]
         I --> SVC1["products-v1"]
-        I -.->|"503 - cross-ns impossible"| SVC2["cart<br/>(different namespace)"]
+        I -.->|"503 cross-ns impossible"| SVC2["🛒 cart<br/>different namespace"]
     end
 
-    subgraph "ingress2gateway"
+    subgraph Tool["🔧 ingress2gateway"]
         TOOL["ingress2gateway print<br/>--input-file ingress.yaml"]
     end
 
-    subgraph "After: Gateway API"
+    subgraph After["✅ After: Gateway API"]
         GW["Gateway<br/>class: alb"]
         HR1["HTTPRoute: products<br/>90/10 split + header match"]
         HR2["HTTPRoute: cart<br/>cross-namespace"]
@@ -29,17 +29,25 @@ graph TB
         GW --> HR2
         HR1 --> V1["products-v1"]
         HR1 --> V2["products-v2"]
-        HR2 -->|"works!"| CART["cart"]
+        HR2 -->|"works!"| CART["🛒 cart"]
         RG -.-> HR2
     end
 
     I -->|"auto-convert"| TOOL
     TOOL -->|"raw output +<br/>manual patches"| GW
 
-    style I fill:#f96,stroke:#333
-    style GW fill:#6f9,stroke:#333
-    style SVC2 fill:#f66,stroke:#333
-    style CART fill:#6f9,stroke:#333
+    classDef primary fill:#E8F4FD,stroke:#2980B9,stroke-width:2px,color:#2C3E50
+    classDef secondary fill:#F0F7EE,stroke:#27AE60,stroke-width:2px,color:#2C3E50
+    classDef accent fill:#FFF3E0,stroke:#E67E22,stroke-width:2px,color:#2C3E50
+    classDef tertiary fill:#F3E8FF,stroke:#8E44AD,stroke-width:2px,color:#2C3E50
+    classDef error fill:#FDEDEE,stroke:#E74C3C,stroke-width:2px,color:#2C3E50
+    linkStyle default stroke:#7F8C8D,stroke-width:1.5px
+
+    class I,SVC2 error
+    class SVC1 primary
+    class TOOL accent
+    class GW,HR1,HR2,RG secondary
+    class V1,V2,CART secondary
 ```
 
 ## What changes in migration
@@ -105,17 +113,17 @@ ingress2gateway print \
 ### What the tool generates vs what we need
 
 ```mermaid
-graph LR
-    subgraph "Tool Output (raw)"
+flowchart LR
+    subgraph Raw["⚠️ Tool Output"]
         direction TB
-        G1["Gateway<br/>gatewayClassName: ''<br/>tls: K8s Secret"]
-        H1["HTTPRoute<br/>single rule<br/>no split, no header match<br/>no cross-ns"]
+        G1["Gateway<br/>gatewayClassName: empty<br/>tls: K8s Secret"]
+        H1["HTTPRoute<br/>single rule, no split<br/>no header match, no cross-ns"]
     end
 
-    subgraph "Manual Patches Needed"
+    subgraph Patches["✏️ Manual Patches Needed"]
         direction TB
-        P1["gatewayClassName: 'alb'"]
-        P2["Remove certificateRefs<br/>(ACM auto-discovery)"]
+        P1["gatewayClassName: alb"]
+        P2["Remove certificateRefs<br/>ACM auto-discovery"]
         P3["Add 90/10 traffic split"]
         P4["Add header-based routing"]
         P5["Add cart HTTPRoute<br/>+ ReferenceGrant"]
@@ -127,13 +135,12 @@ graph LR
     H1 --> P4
     H1 --> P5
 
-    style G1 fill:#ff9,stroke:#333
-    style H1 fill:#ff9,stroke:#333
-    style P1 fill:#9f9,stroke:#333
-    style P2 fill:#9f9,stroke:#333
-    style P3 fill:#9f9,stroke:#333
-    style P4 fill:#9f9,stroke:#333
-    style P5 fill:#9f9,stroke:#333
+    classDef accent fill:#FFF3E0,stroke:#E67E22,stroke-width:2px,color:#2C3E50
+    classDef secondary fill:#F0F7EE,stroke:#27AE60,stroke-width:2px,color:#2C3E50
+    linkStyle default stroke:#7F8C8D,stroke-width:1.5px
+
+    class G1,H1 accent
+    class P1,P2,P3,P4,P5 secondary
 ```
 
 Compare the raw output (`manifests/05-migration/nginx-converted.yaml`) with the final result (`manifests/04-gateway-api/`):
@@ -162,23 +169,34 @@ kubectl apply -f manifests/04-gateway-api/
 This creates 5 resources:
 
 ```mermaid
-graph TB
+flowchart TB
     GC["GatewayClass: alb<br/><i>cluster-scoped</i><br/>controllerName: gateway.k8s.aws/alb"]
 
-    subgraph "Namespace: gatewaydemo"
-        GW["Gateway: gatewaydemo<br/>HTTPS :443<br/>hostname: gateway-demo.vedmich.dev"]
-        HR1["HTTPRoute: products<br/>Rule 1: x-version:v2 -> v2<br/>Rule 2: 90/10 split"]
-        HR2["HTTPRoute: cart<br/>-> cart.gatewaydemo-cart"]
+    subgraph NSMain["Namespace: gatewaydemo"]
+        GW["🌐 Gateway: gatewaydemo<br/>HTTPS :443<br/>hostname: gateway-demo.vedmich.dev"]
+        HR1["HTTPRoute: products<br/>Rule 1: x-version:v2 → v2<br/>Rule 2: 90/10 split"]
+        HR2["HTTPRoute: cart<br/>→ cart.gatewaydemo-cart"]
     end
 
-    subgraph "Namespace: gatewaydemo-cart"
-        RG["ReferenceGrant<br/>allow-gatewaydemo-routes"]
+    subgraph NSCart["Namespace: gatewaydemo-cart"]
+        RG["🔑 ReferenceGrant<br/>allow-gatewaydemo-routes"]
     end
 
     GC --> GW
     GW --> HR1
     GW --> HR2
     RG -.->|"permits cross-ns ref"| HR2
+
+    classDef primary fill:#E8F4FD,stroke:#2980B9,stroke-width:2px,color:#2C3E50
+    classDef secondary fill:#F0F7EE,stroke:#27AE60,stroke-width:2px,color:#2C3E50
+    classDef accent fill:#FFF3E0,stroke:#E67E22,stroke-width:2px,color:#2C3E50
+    classDef tertiary fill:#F3E8FF,stroke:#8E44AD,stroke-width:2px,color:#2C3E50
+    linkStyle default stroke:#7F8C8D,stroke-width:1.5px
+
+    class GC primary
+    class GW accent
+    class HR1,HR2 secondary
+    class RG tertiary
 ```
 
 **Verify:**

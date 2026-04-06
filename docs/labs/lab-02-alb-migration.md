@@ -9,14 +9,14 @@
 ## Migration Flow
 
 ```mermaid
-graph TB
-    subgraph "Before: ALB Ingress"
+flowchart TB
+    subgraph Before["❌ Before: ALB Ingress"]
         I["kind: Ingress<br/>class: alb<br/>10+ annotations"]
         I --> SVC1["products-v1"]
-        I -.->|"503 - cross-ns impossible"| SVC2["cart"]
+        I -.->|"503 cross-ns impossible"| SVC2["🛒 cart"]
     end
 
-    subgraph "After: Gateway API"
+    subgraph After["✅ After: Gateway API"]
         GW["Gateway + GatewayClass"]
         HR["HTTPRoute<br/>typed fields"]
         CRD["LoadBalancerConfig<br/>TargetGroupConfig<br/>type-safe CRDs"]
@@ -24,13 +24,21 @@ graph TB
         CRD -.-> GW
         HR --> V1["products-v1"]
         HR --> V2["products-v2"]
-        HR -->|"ReferenceGrant"| CART["cart"]
+        HR -->|"ReferenceGrant"| CART["🛒 cart"]
     end
 
-    I -->|"manual mapping<br/>(no tool support)"| GW
+    I -->|"manual mapping<br/>no tool support"| GW
 
-    style I fill:#f96,stroke:#333
-    style GW fill:#6f9,stroke:#333
+    classDef primary fill:#E8F4FD,stroke:#2980B9,stroke-width:2px,color:#2C3E50
+    classDef secondary fill:#F0F7EE,stroke:#27AE60,stroke-width:2px,color:#2C3E50
+    classDef accent fill:#FFF3E0,stroke:#E67E22,stroke-width:2px,color:#2C3E50
+    classDef error fill:#FDEDEE,stroke:#E74C3C,stroke-width:2px,color:#2C3E50
+    linkStyle default stroke:#7F8C8D,stroke-width:1.5px
+
+    class I,SVC2 error
+    class SVC1 primary
+    class GW,HR,CRD secondary
+    class V1,V2,CART secondary
 ```
 
 > **Key difference from Lab 1:** No ingress2gateway tool for ALB annotations. This is a manual mapping from untyped annotation strings to type-safe CRDs.
@@ -38,8 +46,8 @@ graph TB
 ## Annotation -> CRD Mapping
 
 ```mermaid
-graph LR
-    subgraph "ALB Ingress Annotations (strings)"
+flowchart LR
+    subgraph Annotations["📝 ALB Ingress Annotations"]
         A1["scheme: internet-facing"]
         A2["target-type: ip"]
         A3["certificate-arn: arn:..."]
@@ -48,7 +56,7 @@ graph LR
         A6["actions.weighted: JSON blob"]
     end
 
-    subgraph "Gateway API CRDs (typed)"
+    subgraph CRDs["✅ Gateway API CRDs"]
         C1["LoadBalancerConfiguration<br/>.spec.scheme"]
         C2["TargetGroupConfiguration<br/>.spec.targetType"]
         C3["Gateway listener<br/>ACM auto-discovery"]
@@ -63,6 +71,13 @@ graph LR
     A4 --> C4
     A5 --> C5
     A6 --> C6
+
+    classDef accent fill:#FFF3E0,stroke:#E67E22,stroke-width:2px,color:#2C3E50
+    classDef secondary fill:#F0F7EE,stroke:#27AE60,stroke-width:2px,color:#2C3E50
+    linkStyle default stroke:#7F8C8D,stroke-width:1.5px
+
+    class A1,A2,A3,A4,A5,A6 accent
+    class C1,C2,C3,C4,C5,C6 secondary
 ```
 
 Full mapping table:
@@ -181,10 +196,10 @@ kubectl -n gatewaydemo get gateway,httproute
 
 ```
 # Expected:
-NAME                                    CLASS   ADDRESS                              PROGRAMMED   AGE
-gateway.gateway.networking.k8s.io/gatewaydemo   alb     k8s-gatewayd-xxxxxx.eu-central-1...   True         60s
+NAME                                             CLASS   ADDRESS                              PROGRAMMED   AGE
+gateway.gateway.networking.k8s.io/gatewaydemo    alb     k8s-gatewayd-xxxxxx.eu-central-1..   True         60s
 
-NAME                                          HOSTNAMES                        AGE
+NAME                                           HOSTNAMES                        AGE
 httproute.gateway.networking.k8s.io/products   ["gateway-demo.vedmich.dev"]     60s
 httproute.gateway.networking.k8s.io/cart       ["gateway-demo.vedmich.dev"]     60s
 ```

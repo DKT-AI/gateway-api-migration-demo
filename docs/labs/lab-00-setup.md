@@ -5,13 +5,23 @@ Provision the EKS cluster, build container images, and deploy the base applicati
 **Duration:** ~20 minutes (mostly waiting for EKS provisioning)
 
 ```mermaid
-graph LR
-    A[Terraform Init] --> B[Terraform Apply<br/>~15 min]
-    B --> C[Configure kubectl]
-    C --> D[Substitute ACCOUNT_ID]
-    D --> E[Build & Push Images]
-    E --> F[Deploy Apps]
-    F --> G[Verify]
+flowchart LR
+    A["① Terraform Init"] --> B["② Terraform Apply<br/>~15 min"]
+    B --> C["③ Configure kubectl"]
+    C --> D["④ Substitute ACCOUNT_ID"]
+    D --> E["⑤ Build & Push Images"]
+    E --> F["⑥ Deploy Apps"]
+    F --> G["✅ Verify"]
+
+    classDef primary fill:#E8F4FD,stroke:#2980B9,stroke-width:2px,color:#2C3E50
+    classDef secondary fill:#F0F7EE,stroke:#27AE60,stroke-width:2px,color:#2C3E50
+    classDef accent fill:#FFF3E0,stroke:#E67E22,stroke-width:2px,color:#2C3E50
+    linkStyle default stroke:#7F8C8D,stroke-width:1.5px
+
+    class A,B primary
+    class C,D accent
+    class E,F primary
+    class G secondary
 ```
 
 ---
@@ -33,19 +43,30 @@ task infra:apply
 This creates:
 
 ```mermaid
-graph TB
-    subgraph "Terraform Resources"
-        VPC["VPC 10.0.0.0/16<br/>2 AZs, NAT Gateway"]
-        EKS["EKS 1.32<br/>2x t3.medium nodes"]
-        CRDs["Gateway API CRDs v1.2.1"]
-        LBC["AWS Load Balancer Controller<br/>v1.12.0 + Gateway API"]
-        ACM["ACM Certificate<br/>gateway-demo.vedmich.dev"]
-        ECR["ECR Repositories<br/>products-v1, products-v2, cart"]
+flowchart TB
+    subgraph TF["🏗️ Terraform Resources"]
+        VPC["🌐 VPC 10.0.0.0/16<br/>2 AZs, NAT Gateway"]
+        EKS["⚙️ EKS 1.32<br/>2x t3.medium nodes"]
+        CRDs["📦 Gateway API CRDs v1.2.1"]
+        LBC["☁️ AWS Load Balancer Controller<br/>v1.12.0 + Gateway API"]
+        ACM["🔒 ACM Certificate<br/>gateway-demo.vedmich.dev"]
+        ECR["📦 ECR Repositories<br/>products-v1, products-v2, cart"]
     end
 
     VPC --> EKS
     EKS --> CRDs
     CRDs --> LBC
+    EKS --> ECR
+    EKS --> ACM
+
+    classDef primary fill:#E8F4FD,stroke:#2980B9,stroke-width:2px,color:#2C3E50
+    classDef secondary fill:#F0F7EE,stroke:#27AE60,stroke-width:2px,color:#2C3E50
+    classDef accent fill:#FFF3E0,stroke:#E67E22,stroke-width:2px,color:#2C3E50
+    linkStyle default stroke:#7F8C8D,stroke-width:1.5px
+
+    class VPC,EKS primary
+    class CRDs,LBC accent
+    class ACM,ECR secondary
 ```
 
 Expected: all resources provisioned (~15 min).
@@ -106,18 +127,29 @@ task deploy:apps
 This deploys Deployments and Services into two namespaces:
 
 ```mermaid
-graph TB
-    subgraph "Namespace: gatewaydemo"
-        D1["Deployment: products-v1<br/>2 replicas"]
-        D2["Deployment: products-v2<br/>1 replica"]
-        S1["Service: products-v1<br/>:80 -> :8000"]
-        S2["Service: products-v2<br/>:80 -> :8000"]
+flowchart TB
+    subgraph NSMain["Namespace: gatewaydemo"]
+        D1["🚀 Deployment: products-v1<br/>2 replicas"]
+        D2["🚀 Deployment: products-v2<br/>1 replica"]
+        S1["Service: products-v1<br/>:80 → :8000"]
+        S2["Service: products-v2<br/>:80 → :8000"]
+        D1 --> S1
+        D2 --> S2
     end
 
-    subgraph "Namespace: gatewaydemo-cart"
-        D3["Deployment: cart<br/>2 replicas"]
-        S3["Service: cart<br/>:80 -> :8000"]
+    subgraph NSCart["Namespace: gatewaydemo-cart"]
+        D3["🚀 Deployment: cart<br/>2 replicas"]
+        S3["Service: cart<br/>:80 → :8000"]
+        D3 --> S3
     end
+
+    classDef primary fill:#E8F4FD,stroke:#2980B9,stroke-width:2px,color:#2C3E50
+    classDef secondary fill:#F0F7EE,stroke:#27AE60,stroke-width:2px,color:#2C3E50
+    classDef accent fill:#FFF3E0,stroke:#E67E22,stroke-width:2px,color:#2C3E50
+    linkStyle default stroke:#7F8C8D,stroke-width:1.5px
+
+    class D1,D2,D3 primary
+    class S1,S2,S3 secondary
 ```
 
 **Verify:**

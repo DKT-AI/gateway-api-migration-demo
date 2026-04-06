@@ -9,27 +9,39 @@ Hands-on scenarios demonstrating Gateway API capabilities that are impossible or
 ## Scenarios Overview
 
 ```mermaid
-graph TB
-    GW["Gateway<br/>gatewaydemo<br/>HTTPS :443"]
+flowchart TB
+    GW["🌐 Gateway<br/>gatewaydemo<br/>HTTPS :443"]
 
-    subgraph "Scenario 1: Traffic Split"
+    subgraph S1["Scenario 1: Traffic Split"]
         HR1["HTTPRoute: products<br/>Rule 2: weighted"]
         HR1 -->|"weight: 90"| V1["products-v1"]
         HR1 -->|"weight: 10"| V2a["products-v2"]
     end
 
-    subgraph "Scenario 2: Header Routing"
+    subgraph S2["Scenario 2: Header Routing"]
         HR2["HTTPRoute: products<br/>Rule 1: header match"]
         HR2 -->|"x-version: v2"| V2b["products-v2<br/>/recommendations"]
     end
 
-    subgraph "Scenario 3: Cross-Namespace"
-        HR3["HTTPRoute: cart"] -->|"ReferenceGrant"| CART["cart<br/>(gatewaydemo-cart ns)"]
+    subgraph S3["Scenario 3: Cross-Namespace"]
+        HR3["HTTPRoute: cart"]
+        HR3 -->|"ReferenceGrant"| CART["🛒 cart<br/>gatewaydemo-cart ns"]
     end
 
     GW --> HR1
     GW --> HR2
     GW --> HR3
+
+    classDef primary fill:#E8F4FD,stroke:#2980B9,stroke-width:2px,color:#2C3E50
+    classDef secondary fill:#F0F7EE,stroke:#27AE60,stroke-width:2px,color:#2C3E50
+    classDef accent fill:#FFF3E0,stroke:#E67E22,stroke-width:2px,color:#2C3E50
+    classDef tertiary fill:#F3E8FF,stroke:#8E44AD,stroke-width:2px,color:#2C3E50
+    linkStyle default stroke:#7F8C8D,stroke-width:1.5px
+
+    class GW primary
+    class HR1,HR2,HR3 accent
+    class V1,CART secondary
+    class V2a,V2b tertiary
 ```
 
 ---
@@ -41,9 +53,10 @@ HTTPRoute sends 90% of `/api/products` traffic to products-v1 and 10% to product
 ### How it works
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#E8F4FD', 'primaryTextColor': '#2C3E50', 'primaryBorderColor': '#2980B9', 'lineColor': '#7F8C8D', 'secondaryColor': '#F0F7EE', 'tertiaryColor': '#F3E8FF', 'actorBkg': '#E8F4FD', 'actorBorder': '#2980B9', 'actorTextColor': '#2C3E50', 'signalColor': '#2C3E50', 'signalTextColor': '#2C3E50'}}}%%
 sequenceDiagram
-    participant C as curl
-    participant ALB as ALB
+    participant C as 👤 curl
+    participant ALB as ☁️ ALB
     participant V1 as products-v1 (90%)
     participant V2 as products-v2 (10%)
 
@@ -98,25 +111,26 @@ The `x-version: v2` header routes requests directly to products-v2, bypassing th
 ### How it works
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#E8F4FD', 'primaryTextColor': '#2C3E50', 'primaryBorderColor': '#2980B9', 'lineColor': '#7F8C8D', 'secondaryColor': '#F0F7EE', 'tertiaryColor': '#F3E8FF', 'actorBkg': '#E8F4FD', 'actorBorder': '#2980B9', 'actorTextColor': '#2C3E50', 'signalColor': '#2C3E50', 'signalTextColor': '#2C3E50', 'noteBkgColor': '#FFF3E0', 'noteTextColor': '#2C3E50', 'noteBorderColor': '#E67E22'}}}%%
 sequenceDiagram
-    participant C as curl
-    participant ALB as ALB
+    participant C as 👤 curl
+    participant ALB as ☁️ ALB
     participant V1 as products-v1
     participant V2 as products-v2
 
     Note over C,V2: Without header (default routing)
     C->>ALB: GET /api/products
-    ALB->>V1: 90% -> v1
+    ALB->>V1: 90% → v1
     V1-->>C: product list
 
     Note over C,V2: With header (deterministic routing)
-    C->>ALB: GET /api/products<br/>x-version: v2
-    ALB->>V2: 100% -> v2
+    C->>ALB: GET /api/products + x-version: v2
+    ALB->>V2: 100% → v2
     V2-->>C: product list
 
     Note over C,V2: v2-only endpoint
-    C->>ALB: GET /api/products/1/recommendations<br/>x-version: v2
-    ALB->>V2: -> v2
+    C->>ALB: GET /api/products/1/recommendations + x-version: v2
+    ALB->>V2: → v2
     V2-->>C: recommendations list
 ```
 
@@ -184,22 +198,33 @@ Cart service lives in `gatewaydemo-cart` namespace. Gateway API routes to it via
 ### How it works
 
 ```mermaid
-graph LR
-    subgraph "Namespace: gatewaydemo"
-        GW["Gateway"]
-        HR["HTTPRoute: cart<br/>backendRef:<br/>  name: cart<br/>  namespace: gatewaydemo-cart"]
+flowchart LR
+    subgraph NSMain["Namespace: gatewaydemo"]
+        GW["🌐 Gateway"]
+        HR["HTTPRoute: cart<br/>backendRef:<br/>namespace: gatewaydemo-cart"]
     end
 
-    subgraph "Namespace: gatewaydemo-cart"
-        RG["ReferenceGrant<br/>from: HTTPRoute/gatewaydemo<br/>to: Service"]
+    subgraph NSCart["Namespace: gatewaydemo-cart"]
+        RG["🔑 ReferenceGrant<br/>from: HTTPRoute/gatewaydemo<br/>to: Service"]
         SVC["Service: cart"]
-        POD["cart pods"]
+        POD["🛒 cart pods"]
     end
 
     GW --> HR
     HR -->|"cross-namespace ref"| SVC
     RG -.->|"permits"| HR
     SVC --> POD
+
+    classDef primary fill:#E8F4FD,stroke:#2980B9,stroke-width:2px,color:#2C3E50
+    classDef secondary fill:#F0F7EE,stroke:#27AE60,stroke-width:2px,color:#2C3E50
+    classDef accent fill:#FFF3E0,stroke:#E67E22,stroke-width:2px,color:#2C3E50
+    classDef tertiary fill:#F3E8FF,stroke:#8E44AD,stroke-width:2px,color:#2C3E50
+    linkStyle default stroke:#7F8C8D,stroke-width:1.5px
+
+    class GW primary
+    class HR accent
+    class RG tertiary
+    class SVC,POD secondary
 ```
 
 **Security model:** Both sides must agree:
@@ -246,18 +271,23 @@ Demonstrate changing traffic weights live -- zero downtime, no redeployment.
 ### Rollout plan
 
 ```mermaid
-graph LR
-    S1["90/10<br/>(current)"]
-    S2["50/50<br/>(validation)"]
-    S3["0/100<br/>(full cutover)"]
+flowchart LR
+    S90["✅ 90/10<br/>current"]
+    S50["⚠️ 50/50<br/>validation"]
+    S100["🚀 0/100<br/>full cutover"]
 
-    S1 -->|"kubectl patch"| S2
-    S2 -->|"kubectl patch"| S3
-    S3 -.->|"rollback"| S1
+    S90 -->|"kubectl patch"| S50
+    S50 -->|"kubectl patch"| S100
+    S100 -.->|"rollback"| S90
 
-    style S1 fill:#6f9,stroke:#333
-    style S2 fill:#ff9,stroke:#333
-    style S3 fill:#f96,stroke:#333
+    classDef secondary fill:#F0F7EE,stroke:#27AE60,stroke-width:2px,color:#2C3E50
+    classDef accent fill:#FFF3E0,stroke:#E67E22,stroke-width:2px,color:#2C3E50
+    classDef tertiary fill:#F3E8FF,stroke:#8E44AD,stroke-width:2px,color:#2C3E50
+    linkStyle default stroke:#7F8C8D,stroke-width:1.5px
+
+    class S90 secondary
+    class S50 accent
+    class S100 tertiary
 ```
 
 ### Try it
